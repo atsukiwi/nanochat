@@ -41,8 +41,8 @@ fi
 
 cd "$SCRIPT_DIR"
 
-# GPU: use only GPU 1
-export CUDA_VISIBLE_DEVICES=1
+# GPU: use only GPU 0
+export CUDA_VISIBLE_DEVICES=0
 # CPU: pin all child processes to cores 30-59
 TASKSET="taskset -c 30-59"
 
@@ -83,7 +83,7 @@ $TASKSET torchrun --standalone --nproc_per_node=1 \
     --depth=26 \
     --target-param-data-ratio=8.25 \
     --device-batch-size=32 \
-    --save-every=20 \
+    --save-every=50 \
     --run="$WANDB_RUN"
 
 # Evaluate
