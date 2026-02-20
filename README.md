@@ -77,6 +77,51 @@ See an example [here](https://github.com/karpathy/nanochat/pull/498#issuecomment
 
 The important thing to note is that nanochat is written and configured around one single dial of complexity - the depth of the transformer. This single integer automatically determines all other hyperparameters (the width of the transformer, number of heads, learning rate adjustments, training horizons, weight decays, ...) so that the trained model comes out compute optimal. The idea is that the user doesn't have to think about or set any of this, they are simply asking for a smaller or bigger model using `--depth`, and everything "just works". By sweeping out the depth, you achieve the nanochat miniseries of compute optimal models at various sizes. GPT-2 capability model (which is of most interest at the moment) happens to be somewhere around d24-d26 range with the current code. But any candidate changes to the repo have to be principled enough that they work for all settings of depth.
 
+## 単一GPU（リモートサーバー）での学習
+
+[runs/train_gpu1.sh](runs/train_gpu1.sh) は、マルチGPUサーバーの特定の1基のGPUを使って学習を行うスクリプトです。リモート接続時にターミナルを閉じても学習が止まらないよう、tmux セッション内で自動的に実行されます。
+
+### 特徴
+
+- **GPU 指定**: `CUDA_VISIBLE_DEVICES=1` により GPU 1 のみを使用
+- **CPU 固定**: `taskset -c 30-59` により CPU コア 30-59 に固定
+- **セッション管理**: tmux で自動ラップされるため、SSH 切断後も学習が継続
+- **チェックポイント**: 20ステップごとに自動保存（`--save-every=20`）
+- **全パイプライン実行**: データダウンロード → トークナイザ学習 → ベースモデル学習 → 評価 → SFT → 評価 → レポート生成
+
+### 使い方
+
+```bash
+# 学習を開始（tmux セッション "nanochat-train" が自動で作られる）
+bash runs/train_gpu1.sh
+```
+
+wandb は常に有効で、プロジェクト `nanochat` に run name `6000ada-YYYYMMDD`（例: `6000ada-20260220`）で自動記録されます。
+
+### tmux の操作
+
+```bash
+# 学習中のセッションからデタッチ（学習は継続）
+# Ctrl+b を押した後、d を押す
+
+# SSH 再接続後、セッションに再アタッチ
+tmux attach -t nanochat-train
+
+# セッションを終了（学習も停止）
+tmux kill-session -t nanochat-train
+```
+
+### カスタマイズ
+
+GPU やCPU の割り当てを変更する場合は、スクリプト内の以下の行を編集してください：
+
+```bash
+export CUDA_VISIBLE_DEVICES=1    # 使用する GPU 番号
+TASKSET="taskset -c 30-59"       # 使用する CPU コア範囲
+```
+
+OOM（メモリ不足）が発生する場合は `--device-batch-size` を 32 から 16 に下げてください。
+
 ## Running on CPU / MPS
 
 The script [runs/runcpu.sh](runs/runcpu.sh) shows a very simple example of running on CPU or Apple Silicon. It dramatically shrinks the LLM that is being trained to make things fit into a reasonable time interval of a few ten minutes of training. You will not get strong results in this way.
