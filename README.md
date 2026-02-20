@@ -83,10 +83,11 @@ The important thing to note is that nanochat is written and configured around on
 
 ### 特徴
 
-- **GPU 指定**: `CUDA_VISIBLE_DEVICES=1` により GPU 1 のみを使用
+- **GPU 指定**: `CUDA_VISIBLE_DEVICES=0` により GPU 0 のみを使用
 - **CPU 固定**: `taskset -c 30-59` により CPU コア 30-59 に固定
 - **セッション管理**: tmux で自動ラップされるため、SSH 切断後も学習が継続
-- **チェックポイント**: 20ステップごとに自動保存（`--save-every=20`）
+- **チェックポイント**: 50ステップごとに自動保存（`--save-every=50`）
+- **Flash Attention**: FA3（Hopper）→ FA2（Ampere/Ada）→ PyTorch SDPA の3段フォールバック
 - **全パイプライン実行**: データダウンロード → トークナイザ学習 → ベースモデル学習 → 評価 → SFT → 評価 → レポート生成
 
 ### 使い方
@@ -120,7 +121,7 @@ export CUDA_VISIBLE_DEVICES=1    # 使用する GPU 番号
 TASKSET="taskset -c 30-59"       # 使用する CPU コア範囲
 ```
 
-OOM（メモリ不足）が発生する場合は `--device-batch-size` を 32 から 16 に下げてください。
+OOM（メモリ不足）が発生する場合は `--device-batch-size` を下げてください（16 → 8 → 4）。Flash Attention 2 が有効であれば SDPA より大幅にメモリ効率が良くなります。`flash-attn` パッケージがインストールされていない場合は `uv pip install flash-attn --no-build-isolation` で追加できます。
 
 ## Running on CPU / MPS
 
@@ -156,6 +157,7 @@ I've published a number of guides that might contain helpful information, most r
 │   ├── dataset.py                  # Download/read utils for pretraining data
 │   ├── engine.py                   # Efficient model inference with KV Cache
 │   ├── execution.py                # Allows the LLM to execute Python code as tool
+│   ├── flash_attention.py          # Unified FA3/FA2/SDPA attention interface
 │   ├── gpt.py                      # The GPT nn.Module Transformer
 │   ├── logo.svg
 │   ├── loss_eval.py                # Evaluate bits per byte (instead of loss)
@@ -168,7 +170,8 @@ I've published a number of guides that might contain helpful information, most r
 │   ├── miniseries.sh               # Miniseries training script
 │   ├── runcpu.sh                   # Small example of how to run on CPU/MPS
 │   ├── scaling_laws.sh             # Scaling laws experiments
-│   └── speedrun.sh                 # Train the ~$100 nanochat d20
+│   ├── speedrun.sh                 # Train the ~$100 nanochat d20
+│   └── train_gpu1.sh               # Single-GPU training (tmux, FA2 support)
 ├── scripts
 │   ├── base_eval.py                # Base model: CORE score, bits per byte, samples
 │   ├── base_train.py               # Base model: train
