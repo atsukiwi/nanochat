@@ -55,6 +55,8 @@ command -v uv &> /dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
 [ -d ".venv" ] || uv venv
 uv sync --extra gpu
 source .venv/bin/activate
+# Flash Attention 2 (ソースビルド、初回のみ時間がかかる)
+uv pip install flash-attn --no-build-isolation
 
 # ---- wandb (always enabled, name: 6000ada-YYYYMMDD) ----
 WANDB_RUN="6000ada-$(date +%Y%m%d)"
