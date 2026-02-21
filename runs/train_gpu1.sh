@@ -85,7 +85,7 @@ $TASKSET torchrun --standalone --nproc_per_node=1 \
     --depth=26 \
     --target-param-data-ratio=8.25 \
     --device-batch-size=4 \
-    --save-every=50 \
+    --save-every=1000 \
     --run="$WANDB_RUN"
 
 # Evaluate
